@@ -7,10 +7,9 @@ import "hardhat/console.sol";
 contract WavePortal {
     uint256 totalWaves;
 
+    uint256 private seed;
 
-    /*
-     * A little magic, Google what events are in Solidity!
-     */
+    // A little magic, Google what events are in Solidity!
     event NewWave(address indexed from, uint256 timestamp, string message);
 
     /*
@@ -31,6 +30,8 @@ contract WavePortal {
 
     constructor() payable {
         console.log("Yo yo, I am a contract and I am smart");
+
+        seed = (block.timestamp + block.difficulty) % 100;
     }
 
     /*
@@ -45,20 +46,30 @@ contract WavePortal {
         // This is where I actually store the wave data in the array.        
         waves.push(Wave(msg.sender, _message, block.timestamp));
 
+        seed = (block.difficulty + block.timestamp + seed) % 100;
+
+
+        console.log("Random # generated: %d", seed);
+
+        // Give a 50% chance that the user wins the prize.
+        if (seed <= 50) {
+            console.log("%s won!", msg.sender);
+
+            uint256 prizeAmount = 0.0001 ether;
+            require(
+                prizeAmount <= address(this).balance,
+                "Trying to withdraw more money than the contract has."
+            );
+            (bool success, ) = (msg.sender).call{value: prizeAmount}("");
+            require(success, "Failed to withdraw money from contract.");
+        }
+
         /*
          * I added some fanciness here, Google it and try to figure out what it is!
          * Let me know what you learn in #general-chill-chat
          */
         emit NewWave(msg.sender, block.timestamp, _message);
 
-
-        uint256 prizeAmount = 0.0001 ether;
-        require(
-            prizeAmount <= address(this).balance,
-            "Trying to withdraw more money than the contract has."
-        );
-        (bool success, ) = (msg.sender).call{value: prizeAmount}("");
-        require(success, "Failed to withdraw money from contract.");
     }
 
     /*
